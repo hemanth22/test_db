@@ -39,6 +39,9 @@ user that has the following privileges:
 1. Download the repository
 2. Change directory to the repository
 
+> [!IMPORTANT]
+> If you are using MySQL client >= 9.x, the new default value of the [`--commands`](https://dev.mysql.com/doc/refman/9.6/en/mysql-command-options.html#option_mysql_commands) parameter is set to `FALSE`. Therefore, the `SOURCE` command won't work. You need to happen `--commands` to each `mysql` command line call.
+
 Then run
 
     mysql < employees.sql
