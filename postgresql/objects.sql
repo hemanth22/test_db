@@ -143,11 +143,11 @@ BEGIN
 
     INSERT INTO department_max_date
     SELECT
-        emp_no, MAX(from_date), MAX(to_date)
+        de.emp_no, MAX(de.from_date), MAX(de.to_date)
     FROM
-        dept_emp
+        dept_emp de
     GROUP BY
-        emp_no;
+        de.emp_no;
 
     CREATE TEMPORARY TABLE department_people
     (
@@ -157,7 +157,7 @@ BEGIN
     );
 
     INSERT INTO department_people
-    SELECT dmd.emp_no, dept_no
+    SELECT dmd.emp_no, de.dept_no
     FROM
         department_max_date dmd
         INNER JOIN dept_emp de
