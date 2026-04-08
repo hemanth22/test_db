@@ -43,7 +43,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: /tmp/mysql-tarball
-          key: mysql-${{ matrix.mysql-version }}-linux-x86_64-v2
+          key: mysql-${{ matrix.mysql-version }}-linux-x86_64-v3
 
       - name: Download MySQL
         run: |
@@ -90,14 +90,17 @@ jobs:
           if [ "$MAJOR" -gt 9 ] || { [ "$MAJOR" -eq 9 ] && [ "$MINOR" -ge 5 ]; }; then
             NEEDS_COMMANDS="true"
           fi
-          # Check if MD5() is available (removed in MySQL 9.6+)
+          # Check if MD5()/SHA() are available (both removed in MySQL 9.6+)
           HAS_MD5="true"
+          HAS_SHA="true"
           if [ "$MAJOR" -gt 9 ] || { [ "$MAJOR" -eq 9 ] && [ "$MINOR" -ge 6 ]; }; then
             HAS_MD5="false"
+            HAS_SHA="false"
           fi
           echo "needs_commands=$NEEDS_COMMANDS" >> "$GITHUB_OUTPUT"
           echo "has_md5=$HAS_MD5" >> "$GITHUB_OUTPUT"
-          echo "MySQL $MYSQL_VERSION: needs_commands=$NEEDS_COMMANDS, has_md5=$HAS_MD5"
+          echo "has_sha=$HAS_SHA" >> "$GITHUB_OUTPUT"
+          echo "MySQL $MYSQL_VERSION: needs_commands=$NEEDS_COMMANDS, has_md5=$HAS_MD5, has_sha=$HAS_SHA"
 
       - name: Load employees database
         run: |
@@ -120,6 +123,7 @@ jobs:
           echo "MD5 OK ($md5_ok matches)"
 
       - name: Test SHA integrity
+        if: steps.features.outputs.has_sha == 'true'
         run: |
           EXTRA_ARGS=""
           [ "${{ steps.features.outputs.needs_commands }}" == "true" ] && EXTRA_ARGS="--commands"
@@ -131,6 +135,18 @@ jobs:
             exit 1
           fi
           echo "SHA OK ($sha_ok matches)"
+
+      - name: Verify row counts (MySQL 9.6+ fallback)
+        if: steps.features.outputs.has_sha == 'false'
+        run: |
+          SBDIR=$(ls -d ~/sandboxes/msb_*)
+          $SBDIR/use -BN -e "SELECT COUNT(*) FROM employees;" employees | grep -q 300024
+          $SBDIR/use -BN -e "SELECT COUNT(*) FROM departments;" employees | grep -q 9
+          $SBDIR/use -BN -e "SELECT COUNT(*) FROM dept_manager;" employees | grep -q 24
+          $SBDIR/use -BN -e "SELECT COUNT(*) FROM dept_emp;" employees | grep -q 331603
+          $SBDIR/use -BN -e "SELECT COUNT(*) FROM titles;" employees | grep -q 443308
+          $SBDIR/use -BN -e "SELECT COUNT(*) FROM salaries;" employees | grep -q 2844047
+          echo "Row counts OK"
 
       - name: Load objects (stored procedures/functions)
         run: |
@@ -188,7 +204,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: /tmp/mysql-tarball
-          key: mysql-${{ matrix.mysql-version }}-linux-x86_64-v2
+          key: mysql-${{ matrix.mysql-version }}-linux-x86_64-v3
 
       - name: Download MySQL
         run: |
@@ -314,7 +330,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: /tmp/mysql-tarball
-          key: mysql-${{ matrix.mysql-version }}-linux-x86_64-v2
+          key: mysql-${{ matrix.mysql-version }}-linux-x86_64-v3
 
       - name: Download MySQL
         run: |
