@@ -18,7 +18,10 @@ jobs:
         mysql-version:
           - '8.0.42'
           - '8.4.8'
+          - '9.0.1'
+          - '9.2.0'
           - '9.5.0'
+          - '9.6.0'
     env:
       SANDBOX_BINARY: ${{ github.workspace }}/opt/mysql
       MYSQL_VERSION: ${{ matrix.mysql-version }}
@@ -40,27 +43,36 @@ jobs:
         uses: actions/cache@v4
         with:
           path: /tmp/mysql-tarball
-          key: mysql-${{ matrix.mysql-version }}-linux-x86_64-v1
+          key: mysql-${{ matrix.mysql-version }}-linux-x86_64-v2
 
       - name: Download MySQL
         run: |
           SHORT_VER="${MYSQL_VERSION%.*}"
-          TARBALL="mysql-${MYSQL_VERSION}-linux-glibc2.17-x86_64.tar.xz"
           mkdir -p /tmp/mysql-tarball
-          if [ ! -f "/tmp/mysql-tarball/$TARBALL" ]; then
-            echo "Downloading $TARBALL..."
-            curl -L -f -o "/tmp/mysql-tarball/$TARBALL" \
-              "https://dev.mysql.com/get/Downloads/MySQL-${SHORT_VER}/$TARBALL" \
-              || curl -L -f -o "/tmp/mysql-tarball/$TARBALL" \
-              "https://downloads.mysql.com/archives/get/p/23/file/$TARBALL"
+          CACHED=$(ls /tmp/mysql-tarball/mysql-${MYSQL_VERSION}-linux-*.tar.xz 2>/dev/null | head -1)
+          if [ -n "$CACHED" ]; then
+            echo "Using cached tarball: $CACHED"
+            ls -lh "$CACHED"
+            exit 0
           fi
-          ls -lh "/tmp/mysql-tarball/$TARBALL"
+          # Try glibc2.17 first, then glibc2.28 (needed for MySQL 9.6+)
+          for GLIBC in glibc2.17 glibc2.28; do
+            TARBALL="mysql-${MYSQL_VERSION}-linux-${GLIBC}-x86_64.tar.xz"
+            URL="https://dev.mysql.com/get/Downloads/MySQL-${SHORT_VER}/${TARBALL}"
+            echo "Trying ${GLIBC}..."
+            if curl -L -f -o "/tmp/mysql-tarball/$TARBALL" "$URL"; then
+              ls -lh "/tmp/mysql-tarball/$TARBALL"
+              exit 0
+            fi
+          done
+          echo "ERROR: Could not download MySQL ${MYSQL_VERSION}"
+          exit 1
 
       - name: Unpack MySQL
         run: |
           mkdir -p "$SANDBOX_BINARY"
-          TARBALL="mysql-${MYSQL_VERSION}-linux-glibc2.17-x86_64.tar.xz"
-          dbdeployer unpack "/tmp/mysql-tarball/$TARBALL" \
+          TARBALL=$(ls /tmp/mysql-tarball/mysql-${MYSQL_VERSION}-linux-*.tar.xz | head -1)
+          dbdeployer unpack "$TARBALL" \
             --sandbox-binary="$SANDBOX_BINARY"
 
       - name: Deploy sandbox
@@ -109,13 +121,10 @@ jobs:
       - name: Test stored procedures
         run: |
           SBDIR=$(ls -d ~/sandboxes/msb_*)
-          # Test functions
           $SBDIR/use -BN -e "SELECT emp_name(10001);" employees
           $SBDIR/use -BN -e "SELECT emp_dept_name(10001);" employees
           $SBDIR/use -BN -e "SELECT current_manager('d001');" employees
-          # Test procedure
           $SBDIR/use -t -e "CALL show_departments();" employees
-          # Test views
           $SBDIR/use -BN -e "SELECT COUNT(*) FROM v_full_employees;" employees
           $SBDIR/use -BN -e "SELECT COUNT(*) FROM v_full_departments;" employees
 
@@ -134,7 +143,10 @@ jobs:
         mysql-version:
           - '8.0.42'
           - '8.4.8'
+          - '9.0.1'
+          - '9.2.0'
           - '9.5.0'
+          - '9.6.0'
     env:
       SANDBOX_BINARY: ${{ github.workspace }}/opt/mysql
       MYSQL_VERSION: ${{ matrix.mysql-version }}
@@ -156,27 +168,35 @@ jobs:
         uses: actions/cache@v4
         with:
           path: /tmp/mysql-tarball
-          key: mysql-${{ matrix.mysql-version }}-linux-x86_64-v1
+          key: mysql-${{ matrix.mysql-version }}-linux-x86_64-v2
 
       - name: Download MySQL
         run: |
           SHORT_VER="${MYSQL_VERSION%.*}"
-          TARBALL="mysql-${MYSQL_VERSION}-linux-glibc2.17-x86_64.tar.xz"
           mkdir -p /tmp/mysql-tarball
-          if [ ! -f "/tmp/mysql-tarball/$TARBALL" ]; then
-            echo "Downloading $TARBALL..."
-            curl -L -f -o "/tmp/mysql-tarball/$TARBALL" \
-              "https://dev.mysql.com/get/Downloads/MySQL-${SHORT_VER}/$TARBALL" \
-              || curl -L -f -o "/tmp/mysql-tarball/$TARBALL" \
-              "https://downloads.mysql.com/archives/get/p/23/file/$TARBALL"
+          CACHED=$(ls /tmp/mysql-tarball/mysql-${MYSQL_VERSION}-linux-*.tar.xz 2>/dev/null | head -1)
+          if [ -n "$CACHED" ]; then
+            echo "Using cached tarball: $CACHED"
+            ls -lh "$CACHED"
+            exit 0
           fi
-          ls -lh "/tmp/mysql-tarball/$TARBALL"
+          for GLIBC in glibc2.17 glibc2.28; do
+            TARBALL="mysql-${MYSQL_VERSION}-linux-${GLIBC}-x86_64.tar.xz"
+            URL="https://dev.mysql.com/get/Downloads/MySQL-${SHORT_VER}/${TARBALL}"
+            echo "Trying ${GLIBC}..."
+            if curl -L -f -o "/tmp/mysql-tarball/$TARBALL" "$URL"; then
+              ls -lh "/tmp/mysql-tarball/$TARBALL"
+              exit 0
+            fi
+          done
+          echo "ERROR: Could not download MySQL ${MYSQL_VERSION}"
+          exit 1
 
       - name: Unpack MySQL
         run: |
           mkdir -p "$SANDBOX_BINARY"
-          TARBALL="mysql-${MYSQL_VERSION}-linux-glibc2.17-x86_64.tar.xz"
-          dbdeployer unpack "/tmp/mysql-tarball/$TARBALL" \
+          TARBALL=$(ls /tmp/mysql-tarball/mysql-${MYSQL_VERSION}-linux-*.tar.xz | head -1)
+          dbdeployer unpack "$TARBALL" \
             --sandbox-binary="$SANDBOX_BINARY"
 
       - name: Deploy sandbox
@@ -193,13 +213,11 @@ jobs:
       - name: Verify partitioning
         run: |
           SBDIR=$(ls -d ~/sandboxes/msb_*)
-          # Verify partitions exist on titles
           PART_COUNT=$($SBDIR/use -BN -e \
             "SELECT COUNT(*) FROM information_schema.partitions WHERE table_schema='employees' AND table_name='titles';" \
             employees)
           echo "titles partitions: $PART_COUNT"
           [ "$PART_COUNT" -ge 18 ] || { echo "FAIL: expected >= 18 partitions on titles"; exit 1; }
-          # Verify partitions exist on salaries
           PART_COUNT=$($SBDIR/use -BN -e \
             "SELECT COUNT(*) FROM information_schema.partitions WHERE table_schema='employees' AND table_name='salaries';" \
             employees)
@@ -234,7 +252,10 @@ jobs:
         mysql-version:
           - '8.0.42'
           - '8.4.8'
+          - '9.0.1'
+          - '9.2.0'
           - '9.5.0'
+          - '9.6.0'
     env:
       SANDBOX_BINARY: ${{ github.workspace }}/opt/mysql
       MYSQL_VERSION: ${{ matrix.mysql-version }}
@@ -256,27 +277,35 @@ jobs:
         uses: actions/cache@v4
         with:
           path: /tmp/mysql-tarball
-          key: mysql-${{ matrix.mysql-version }}-linux-x86_64-v1
+          key: mysql-${{ matrix.mysql-version }}-linux-x86_64-v2
 
       - name: Download MySQL
         run: |
           SHORT_VER="${MYSQL_VERSION%.*}"
-          TARBALL="mysql-${MYSQL_VERSION}-linux-glibc2.17-x86_64.tar.xz"
           mkdir -p /tmp/mysql-tarball
-          if [ ! -f "/tmp/mysql-tarball/$TARBALL" ]; then
-            echo "Downloading $TARBALL..."
-            curl -L -f -o "/tmp/mysql-tarball/$TARBALL" \
-              "https://dev.mysql.com/get/Downloads/MySQL-${SHORT_VER}/$TARBALL" \
-              || curl -L -f -o "/tmp/mysql-tarball/$TARBALL" \
-              "https://downloads.mysql.com/archives/get/p/23/file/$TARBALL"
+          CACHED=$(ls /tmp/mysql-tarball/mysql-${MYSQL_VERSION}-linux-*.tar.xz 2>/dev/null | head -1)
+          if [ -n "$CACHED" ]; then
+            echo "Using cached tarball: $CACHED"
+            ls -lh "$CACHED"
+            exit 0
           fi
-          ls -lh "/tmp/mysql-tarball/$TARBALL"
+          for GLIBC in glibc2.17 glibc2.28; do
+            TARBALL="mysql-${MYSQL_VERSION}-linux-${GLIBC}-x86_64.tar.xz"
+            URL="https://dev.mysql.com/get/Downloads/MySQL-${SHORT_VER}/${TARBALL}"
+            echo "Trying ${GLIBC}..."
+            if curl -L -f -o "/tmp/mysql-tarball/$TARBALL" "$URL"; then
+              ls -lh "/tmp/mysql-tarball/$TARBALL"
+              exit 0
+            fi
+          done
+          echo "ERROR: Could not download MySQL ${MYSQL_VERSION}"
+          exit 1
 
       - name: Unpack MySQL
         run: |
           mkdir -p "$SANDBOX_BINARY"
-          TARBALL="mysql-${MYSQL_VERSION}-linux-glibc2.17-x86_64.tar.xz"
-          dbdeployer unpack "/tmp/mysql-tarball/$TARBALL" \
+          TARBALL=$(ls /tmp/mysql-tarball/mysql-${MYSQL_VERSION}-linux-*.tar.xz | head -1)
+          dbdeployer unpack "$TARBALL" \
             --sandbox-binary="$SANDBOX_BINARY"
 
       - name: Deploy sandbox
@@ -299,13 +328,11 @@ jobs:
       - name: Verify Sakila data
         run: |
           SBDIR=$(ls -d ~/sandboxes/msb_*)
-          # Verify core tables have data
           for table in actor film customer rental payment staff store; do
             COUNT=$($SBDIR/use -BN -e "SELECT COUNT(*) FROM $table;" sakila)
             echo "$table: $COUNT rows"
             [ "$COUNT" -gt 0 ] || { echo "FAIL: $table is empty"; exit 1; }
           done
-          # Verify views work
           $SBDIR/use -BN -e "SELECT COUNT(*) FROM film_list;" sakila
           $SBDIR/use -BN -e "SELECT COUNT(*) FROM customer_list;" sakila
 
