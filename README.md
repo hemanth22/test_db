@@ -130,8 +130,7 @@ The database is also available for PostgreSQL. The schema and data are identical
 
         psql -d employees < postgresql/objects.sql
 
-Available functions: `emp_name()`, `emp_dept_name()`, `emp_dept_id()`, `current_manager()`.
-Available procedures: `CALL show_departments()`, `CALL employees_help()`.
+Available functions: `emp_name()`, `emp_dept_name()`, `emp_dept_id()`, `current_manager()`, `show_departments()` (use `SELECT * FROM show_departments();`), `employees_help()`.
 
 
 ## DISCLAIMER

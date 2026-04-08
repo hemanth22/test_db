@@ -105,7 +105,7 @@ jobs:
           $SBDIR/use -d employees -t -c "SELECT emp_name(10001);"
           $SBDIR/use -d employees -t -c "SELECT emp_dept_name(10001);"
           $SBDIR/use -d employees -t -c "SELECT current_manager('d001');"
-          $SBDIR/use -d employees -c "CALL show_departments();"
+          $SBDIR/use -d employees -c "SELECT * FROM show_departments();"
           $SBDIR/use -d employees -t -c "SELECT COUNT(*) FROM v_full_employees;"
           $SBDIR/use -d employees -t -c "SELECT COUNT(*) FROM v_full_departments;"
 

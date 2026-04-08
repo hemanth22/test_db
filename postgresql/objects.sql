@@ -8,7 +8,7 @@ DROP FUNCTION IF EXISTS emp_dept_name(INT);
 DROP FUNCTION IF EXISTS emp_name(INT);
 DROP FUNCTION IF EXISTS current_manager(CHAR(4));
 DROP FUNCTION IF EXISTS employees_usage();
-DROP PROCEDURE IF EXISTS show_departments();
+DROP FUNCTION IF EXISTS show_departments();
 DROP PROCEDURE IF EXISTS employees_help();
 
 --
@@ -126,7 +126,8 @@ FROM
 -- shows the departments with the number of employees
 -- per department
 --
-CREATE OR REPLACE PROCEDURE show_departments()
+CREATE OR REPLACE FUNCTION show_departments()
+RETURNS TABLE(dept_no CHAR(4), dept_name VARCHAR(40), manager VARCHAR(32), count BIGINT)
 LANGUAGE plpgsql
 AS $$
 BEGIN
@@ -164,11 +165,12 @@ BEGIN
             AND dmd.dept_to_date=de.to_date
             AND dmd.emp_no=de.emp_no;
 
+    RETURN QUERY
     SELECT
-        dept_no, dept_name, manager, COUNT(*)
-    FROM v_full_departments
-        INNER JOIN department_people USING (dept_no)
-    GROUP BY dept_no, dept_name, manager;
+        v.dept_no, v.dept_name, v.manager::VARCHAR(32), COUNT(*)::BIGINT
+    FROM v_full_departments v
+        INNER JOIN department_people dp ON v.dept_no = dp.dept_no
+    GROUP BY v.dept_no, v.dept_name, v.manager;
 
     DROP TABLE department_max_date;
     DROP TABLE department_people;
@@ -185,10 +187,11 @@ BEGIN
     == USAGE ==
     ====================
 
-    PROCEDURE show_departments()
+    FUNCTION show_departments()
 
         shows the departments with the manager and
         number of employees per department
+        (returns TABLE - use: SELECT * FROM show_departments();)
 
     FUNCTION current_manager (dept_id)
 
