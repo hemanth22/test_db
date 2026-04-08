@@ -136,17 +136,18 @@ jobs:
           fi
           echo "SHA OK ($sha_ok matches)"
 
-      - name: Verify row counts (MySQL 9.6+ fallback)
-        if: steps.features.outputs.has_sha == 'false'
+      - name: Test SHA2 integrity
         run: |
-          SBDIR=$(ls -d ~/sandboxes/msb_*)
-          $SBDIR/use -BN -e "SELECT COUNT(*) FROM employees;" employees | grep -q 300024
-          $SBDIR/use -BN -e "SELECT COUNT(*) FROM departments;" employees | grep -q 9
-          $SBDIR/use -BN -e "SELECT COUNT(*) FROM dept_manager;" employees | grep -q 24
-          $SBDIR/use -BN -e "SELECT COUNT(*) FROM dept_emp;" employees | grep -q 331603
-          $SBDIR/use -BN -e "SELECT COUNT(*) FROM titles;" employees | grep -q 443308
-          $SBDIR/use -BN -e "SELECT COUNT(*) FROM salaries;" employees | grep -q 2844047
-          echo "Row counts OK"
+          EXTRA_ARGS=""
+          [ "${{ steps.features.outputs.needs_commands }}" == "true" ] && EXTRA_ARGS="--commands"
+          ~/sandboxes/msb_*/use $EXTRA_ARGS -t < test_employees_sha2.sql > /tmp/test_sha2.txt
+          cat /tmp/test_sha2.txt
+          sha2_ok=$(grep -iw ok /tmp/test_sha2.txt | wc -l | tr -d ' \t')
+          if [ "$sha2_ok" != "8" ]; then
+            echo "SHA2 FAIL - expected 8 OK - found $sha2_ok"
+            exit 1
+          fi
+          echo "SHA2 OK ($sha2_ok matches)"
 
       - name: Load objects (stored procedures/functions)
         run: |
@@ -289,6 +290,19 @@ jobs:
             exit 1
           fi
           echo "MD5 OK ($md5_ok matches)"
+
+      - name: Test SHA2 integrity
+        run: |
+          EXTRA_ARGS=""
+          [ "${{ steps.features.outputs.needs_commands }}" == "true" ] && EXTRA_ARGS="--commands"
+          ~/sandboxes/msb_*/use $EXTRA_ARGS -t < test_employees_sha2.sql > /tmp/test_sha2.txt
+          cat /tmp/test_sha2.txt
+          sha2_ok=$(grep -iw ok /tmp/test_sha2.txt | wc -l | tr -d ' \t')
+          if [ "$sha2_ok" != "8" ]; then
+            echo "SHA2 FAIL - expected 8 OK - found $sha2_ok"
+            exit 1
+          fi
+          echo "SHA2 OK ($sha2_ok matches)"
 
       - name: Cleanup
         if: always()
