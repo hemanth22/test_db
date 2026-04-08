@@ -102,12 +102,12 @@ jobs:
       - name: Test stored procedures
         run: |
           SBDIR=$(ls -d ~/sandboxes/pg_sandbox_*)
-          $SBDIR/use -d employees -BN -c "SELECT emp_name(10001);"
-          $SBDIR/use -d employees -BN -c "SELECT emp_dept_name(10001);"
-          $SBDIR/use -d employees -BN -c "SELECT current_manager('d001');"
+          $SBDIR/use -d employees -t -c "SELECT emp_name(10001);"
+          $SBDIR/use -d employees -t -c "SELECT emp_dept_name(10001);"
+          $SBDIR/use -d employees -t -c "SELECT current_manager('d001');"
           $SBDIR/use -d employees -c "CALL show_departments();"
-          $SBDIR/use -d employees -BN -c "SELECT COUNT(*) FROM v_full_employees;"
-          $SBDIR/use -d employees -BN -c "SELECT COUNT(*) FROM v_full_departments;"
+          $SBDIR/use -d employees -t -c "SELECT COUNT(*) FROM v_full_employees;"
+          $SBDIR/use -d employees -t -c "SELECT COUNT(*) FROM v_full_departments;"
 
       - name: Cleanup
         if: always()
