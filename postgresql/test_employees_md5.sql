@@ -55,32 +55,32 @@ INSERT INTO found_values VALUES
 ('employees',
     (SELECT COUNT(*) FROM employees),
     (SELECT compute_table_md5($$SELECT CONCAT_WS('#', emp_no, birth_date, first_name, last_name, gender, hire_date) AS row_text FROM employees ORDER BY emp_no$$)),
-    (SELECT compute_table_md5($$SELECT CONCAT_WS('#', emp_no, birth_date, first_name, last_name, gender, hire_date) AS row_text FROM employees ORDER BY emp_no$$)),
+    (SELECT compute_table_md5($$SELECT CONCAT_WS('#', emp_no, birth_date, first_name, last_name, gender, hire_date) AS row_text FROM employees ORDER BY emp_no$$))),
 
 ('departments',
     (SELECT COUNT(*) FROM departments),
     (SELECT compute_table_md5($$SELECT CONCAT_WS('#', dept_no, dept_name) AS row_text FROM departments ORDER BY dept_no$$)),
-    (SELECT compute_table_md5($$SELECT CONCAT_WS('#', dept_no, dept_name) AS row_text FROM departments ORDER BY dept_no$$)),
+    (SELECT compute_table_md5($$SELECT CONCAT_WS('#', dept_no, dept_name) AS row_text FROM departments ORDER BY dept_no$$))),
 
 ('dept_manager',
     (SELECT COUNT(*) FROM dept_manager),
     (SELECT compute_table_md5($$SELECT CONCAT_WS('#', dept_no, emp_no, from_date, to_date) AS row_text FROM dept_manager ORDER BY dept_no, emp_no$$)),
-    (SELECT compute_table_md5($$SELECT CONCAT_WS('#', dept_no, emp_no, from_date, to_date) AS row_text FROM dept_manager ORDER BY dept_no, emp_no$$)),
+    (SELECT compute_table_md5($$SELECT CONCAT_WS('#', dept_no, emp_no, from_date, to_date) AS row_text FROM dept_manager ORDER BY dept_no, emp_no$$))),
 
 ('dept_emp',
     (SELECT COUNT(*) FROM dept_emp),
     (SELECT compute_table_md5($$SELECT CONCAT_WS('#', dept_no, emp_no, from_date, to_date) AS row_text FROM dept_emp ORDER BY dept_no, emp_no$$)),
-    (SELECT compute_table_md5($$SELECT CONCAT_WS('#', dept_no, emp_no, from_date, to_date) AS row_text FROM dept_emp ORDER BY dept_no, emp_no$$)),
+    (SELECT compute_table_md5($$SELECT CONCAT_WS('#', dept_no, emp_no, from_date, to_date) AS row_text FROM dept_emp ORDER BY dept_no, emp_no$$))),
 
 ('titles',
     (SELECT COUNT(*) FROM titles),
     (SELECT compute_table_md5($$SELECT CONCAT_WS('#', emp_no, title, from_date, to_date) AS row_text FROM titles ORDER BY emp_no, title, from_date$$)),
-    (SELECT compute_table_md5($$SELECT CONCAT_WS('#', emp_no, title, from_date, to_date) AS row_text FROM titles ORDER BY emp_no, title, from_date$$)),
+    (SELECT compute_table_md5($$SELECT CONCAT_WS('#', emp_no, title, from_date, to_date) AS row_text FROM titles ORDER BY emp_no, title, from_date$$))),
 
 ('salaries',
     (SELECT COUNT(*) FROM salaries),
     (SELECT compute_table_md5($$SELECT CONCAT_WS('#', emp_no, salary, from_date, to_date) AS row_text FROM salaries ORDER BY emp_no, from_date, to_date$$)),
-    (SELECT compute_table_md5($$SELECT CONCAT_WS('#', emp_no, salary, from_date, to_date) AS row_text FROM salaries ORDER BY emp_no, from_date, to_date$$));
+    (SELECT compute_table_md5($$SELECT CONCAT_WS('#', emp_no, salary, from_date, to_date) AS row_text FROM salaries ORDER BY emp_no, from_date, to_date$$)));
 
 SELECT table_name, recs AS found_records, crc_md5 AS found_crc FROM found_values;
 
