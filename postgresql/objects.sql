@@ -168,7 +168,7 @@ BEGIN
         dept_no, dept_name, manager, COUNT(*)
     FROM v_full_departments
         INNER JOIN department_people USING (dept_no)
-    GROUP BY dept_no;
+    GROUP BY dept_no, dept_name, manager;
 
     DROP TABLE department_max_date;
     DROP TABLE department_people;
