@@ -5,6 +5,10 @@ This repository was migrated from [Launchpad](https://launchpad.net/test-db).
 
 See usage in the [MySQL docs](https://dev.mysql.com/doc/employee/en/index.html)
 
+[![CI MySQL](https://github.com/datacharmer/test_db/actions/workflows/ci-mysql.yml/badge.svg)](https://github.com/datacharmer/test_db/actions/workflows/ci-mysql.yml)
+[![CI Percona](https://github.com/datacharmer/test_db/actions/workflows/ci-percona.yml/badge.svg)](https://github.com/datacharmer/test_db/actions/workflows/ci-percona.yml)
+[![CI MariaDB](https://github.com/datacharmer/test_db/actions/workflows/ci-mariadb.yml/badge.svg)](https://github.com/datacharmer/test_db/actions/workflows/ci-mariadb.yml)
+
 
 ## Where it comes from
 

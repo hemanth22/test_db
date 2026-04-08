@@ -1,0 +1,316 @@
+name: CI MySQL
+
+on:
+  push:
+  pull_request:
+  schedule:
+    # Weekly on Monday at 3:07 AM UTC
+    - cron: '7 3 * * 1'
+  workflow_dispatch:
+
+jobs:
+  employees-mysql:
+    name: Employees DB (${{ matrix.mysql-version }})
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        mysql-version:
+          - '8.0.42'
+          - '8.4.8'
+          - '9.5.0'
+    env:
+      SANDBOX_BINARY: ${{ github.workspace }}/opt/mysql
+      MYSQL_VERSION: ${{ matrix.mysql-version }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libaio1 libnuma1 libncurses5
+
+      - name: Install dbdeployer
+        run: |
+          curl -s https://raw.githubusercontent.com/ProxySQL/dbdeployer/master/scripts/dbdeployer-install.sh | bash
+          echo "$HOME/bin" >> "$GITHUB_PATH"
+
+      - name: Cache MySQL tarball
+        uses: actions/cache@v4
+        with:
+          path: /tmp/mysql-tarball
+          key: mysql-${{ matrix.mysql-version }}-linux-x86_64-v1
+
+      - name: Download MySQL
+        run: |
+          SHORT_VER="${MYSQL_VERSION%.*}"
+          TARBALL="mysql-${MYSQL_VERSION}-linux-glibc2.17-x86_64.tar.xz"
+          mkdir -p /tmp/mysql-tarball
+          if [ ! -f "/tmp/mysql-tarball/$TARBALL" ]; then
+            echo "Downloading $TARBALL..."
+            curl -L -f -o "/tmp/mysql-tarball/$TARBALL" \
+              "https://dev.mysql.com/get/Downloads/MySQL-${SHORT_VER}/$TARBALL" \
+              || curl -L -f -o "/tmp/mysql-tarball/$TARBALL" \
+              "https://downloads.mysql.com/archives/get/p/23/file/$TARBALL"
+          fi
+          ls -lh "/tmp/mysql-tarball/$TARBALL"
+
+      - name: Unpack MySQL
+        run: |
+          mkdir -p "$SANDBOX_BINARY"
+          TARBALL="mysql-${MYSQL_VERSION}-linux-glibc2.17-x86_64.tar.xz"
+          dbdeployer unpack "/tmp/mysql-tarball/$TARBALL" \
+            --sandbox-binary="$SANDBOX_BINARY"
+
+      - name: Deploy sandbox
+        run: |
+          dbdeployer deploy single "$MYSQL_VERSION" \
+            --sandbox-binary="$SANDBOX_BINARY"
+
+      - name: Load employees database
+        run: |
+          EXTRA_ARGS=""
+          [[ "$MYSQL_VERSION" == 9.* ]] && EXTRA_ARGS="--commands"
+          ~/sandboxes/msb_*/use $EXTRA_ARGS < employees.sql
+
+      - name: Test MD5 integrity
+        run: |
+          EXTRA_ARGS=""
+          [[ "$MYSQL_VERSION" == 9.* ]] && EXTRA_ARGS="--commands"
+          ~/sandboxes/msb_*/use $EXTRA_ARGS -t < test_employees_md5.sql > /tmp/test_md5.txt
+          cat /tmp/test_md5.txt
+          md5_ok=$(grep -iw ok /tmp/test_md5.txt | wc -l | tr -d ' \t')
+          if [ "$md5_ok" != "8" ]; then
+            echo "MD5 FAIL - expected 8 OK - found $md5_ok"
+            exit 1
+          fi
+          echo "MD5 OK ($md5_ok matches)"
+
+      - name: Test SHA integrity
+        run: |
+          EXTRA_ARGS=""
+          [[ "$MYSQL_VERSION" == 9.* ]] && EXTRA_ARGS="--commands"
+          ~/sandboxes/msb_*/use $EXTRA_ARGS -t < test_employees_sha.sql > /tmp/test_sha.txt
+          cat /tmp/test_sha.txt
+          sha_ok=$(grep -iw ok /tmp/test_sha.txt | wc -l | tr -d ' \t')
+          if [ "$sha_ok" != "8" ]; then
+            echo "SHA FAIL - expected 8 OK - found $sha_ok"
+            exit 1
+          fi
+          echo "SHA OK ($sha_ok matches)"
+
+      - name: Load objects (stored procedures/functions)
+        run: |
+          EXTRA_ARGS=""
+          [[ "$MYSQL_VERSION" == 9.* ]] && EXTRA_ARGS="--commands"
+          ~/sandboxes/msb_*/use $EXTRA_ARGS < objects.sql
+
+      - name: Test stored procedures
+        run: |
+          SBDIR=$(ls -d ~/sandboxes/msb_*)
+          # Test functions
+          $SBDIR/use -BN -e "SELECT emp_name(10001);" employees
+          $SBDIR/use -BN -e "SELECT emp_dept_name(10001);" employees
+          $SBDIR/use -BN -e "SELECT current_manager('d001');" employees
+          # Test procedure
+          $SBDIR/use -t -e "CALL show_departments();" employees
+          # Test views
+          $SBDIR/use -BN -e "SELECT COUNT(*) FROM v_full_employees;" employees
+          $SBDIR/use -BN -e "SELECT COUNT(*) FROM v_full_departments;" employees
+
+      - name: Cleanup
+        if: always()
+        run: |
+          dbdeployer delete all --skip-confirm 2>/dev/null || true
+          pkill -9 -u "$USER" mysqld 2>/dev/null || true
+
+  partitioned-mysql:
+    name: Employees Partitioned (${{ matrix.mysql-version }})
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        mysql-version:
+          - '8.0.42'
+          - '8.4.8'
+          - '9.5.0'
+    env:
+      SANDBOX_BINARY: ${{ github.workspace }}/opt/mysql
+      MYSQL_VERSION: ${{ matrix.mysql-version }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libaio1 libnuma1 libncurses5
+
+      - name: Install dbdeployer
+        run: |
+          curl -s https://raw.githubusercontent.com/ProxySQL/dbdeployer/master/scripts/dbdeployer-install.sh | bash
+          echo "$HOME/bin" >> "$GITHUB_PATH"
+
+      - name: Cache MySQL tarball
+        uses: actions/cache@v4
+        with:
+          path: /tmp/mysql-tarball
+          key: mysql-${{ matrix.mysql-version }}-linux-x86_64-v1
+
+      - name: Download MySQL
+        run: |
+          SHORT_VER="${MYSQL_VERSION%.*}"
+          TARBALL="mysql-${MYSQL_VERSION}-linux-glibc2.17-x86_64.tar.xz"
+          mkdir -p /tmp/mysql-tarball
+          if [ ! -f "/tmp/mysql-tarball/$TARBALL" ]; then
+            echo "Downloading $TARBALL..."
+            curl -L -f -o "/tmp/mysql-tarball/$TARBALL" \
+              "https://dev.mysql.com/get/Downloads/MySQL-${SHORT_VER}/$TARBALL" \
+              || curl -L -f -o "/tmp/mysql-tarball/$TARBALL" \
+              "https://downloads.mysql.com/archives/get/p/23/file/$TARBALL"
+          fi
+          ls -lh "/tmp/mysql-tarball/$TARBALL"
+
+      - name: Unpack MySQL
+        run: |
+          mkdir -p "$SANDBOX_BINARY"
+          TARBALL="mysql-${MYSQL_VERSION}-linux-glibc2.17-x86_64.tar.xz"
+          dbdeployer unpack "/tmp/mysql-tarball/$TARBALL" \
+            --sandbox-binary="$SANDBOX_BINARY"
+
+      - name: Deploy sandbox
+        run: |
+          dbdeployer deploy single "$MYSQL_VERSION" \
+            --sandbox-binary="$SANDBOX_BINARY"
+
+      - name: Load partitioned employees database
+        run: |
+          EXTRA_ARGS=""
+          [[ "$MYSQL_VERSION" == 9.* ]] && EXTRA_ARGS="--commands"
+          ~/sandboxes/msb_*/use $EXTRA_ARGS < employees_partitioned.sql
+
+      - name: Verify partitioning
+        run: |
+          SBDIR=$(ls -d ~/sandboxes/msb_*)
+          # Verify partitions exist on titles
+          PART_COUNT=$($SBDIR/use -BN -e \
+            "SELECT COUNT(*) FROM information_schema.partitions WHERE table_schema='employees' AND table_name='titles';" \
+            employees)
+          echo "titles partitions: $PART_COUNT"
+          [ "$PART_COUNT" -ge 18 ] || { echo "FAIL: expected >= 18 partitions on titles"; exit 1; }
+          # Verify partitions exist on salaries
+          PART_COUNT=$($SBDIR/use -BN -e \
+            "SELECT COUNT(*) FROM information_schema.partitions WHERE table_schema='employees' AND table_name='salaries';" \
+            employees)
+          echo "salaries partitions: $PART_COUNT"
+          [ "$PART_COUNT" -ge 18 ] || { echo "FAIL: expected >= 18 partitions on salaries"; exit 1; }
+
+      - name: Test MD5 integrity
+        run: |
+          EXTRA_ARGS=""
+          [[ "$MYSQL_VERSION" == 9.* ]] && EXTRA_ARGS="--commands"
+          ~/sandboxes/msb_*/use $EXTRA_ARGS -t < test_employees_md5.sql > /tmp/test_md5.txt
+          cat /tmp/test_md5.txt
+          md5_ok=$(grep -iw ok /tmp/test_md5.txt | wc -l | tr -d ' \t')
+          if [ "$md5_ok" != "8" ]; then
+            echo "MD5 FAIL - expected 8 OK - found $md5_ok"
+            exit 1
+          fi
+          echo "MD5 OK ($md5_ok matches)"
+
+      - name: Cleanup
+        if: always()
+        run: |
+          dbdeployer delete all --skip-confirm 2>/dev/null || true
+          pkill -9 -u "$USER" mysqld 2>/dev/null || true
+
+  sakila-mysql:
+    name: Sakila DB (${{ matrix.mysql-version }})
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        mysql-version:
+          - '8.0.42'
+          - '8.4.8'
+          - '9.5.0'
+    env:
+      SANDBOX_BINARY: ${{ github.workspace }}/opt/mysql
+      MYSQL_VERSION: ${{ matrix.mysql-version }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libaio1 libnuma1 libncurses5
+
+      - name: Install dbdeployer
+        run: |
+          curl -s https://raw.githubusercontent.com/ProxySQL/dbdeployer/master/scripts/dbdeployer-install.sh | bash
+          echo "$HOME/bin" >> "$GITHUB_PATH"
+
+      - name: Cache MySQL tarball
+        uses: actions/cache@v4
+        with:
+          path: /tmp/mysql-tarball
+          key: mysql-${{ matrix.mysql-version }}-linux-x86_64-v1
+
+      - name: Download MySQL
+        run: |
+          SHORT_VER="${MYSQL_VERSION%.*}"
+          TARBALL="mysql-${MYSQL_VERSION}-linux-glibc2.17-x86_64.tar.xz"
+          mkdir -p /tmp/mysql-tarball
+          if [ ! -f "/tmp/mysql-tarball/$TARBALL" ]; then
+            echo "Downloading $TARBALL..."
+            curl -L -f -o "/tmp/mysql-tarball/$TARBALL" \
+              "https://dev.mysql.com/get/Downloads/MySQL-${SHORT_VER}/$TARBALL" \
+              || curl -L -f -o "/tmp/mysql-tarball/$TARBALL" \
+              "https://downloads.mysql.com/archives/get/p/23/file/$TARBALL"
+          fi
+          ls -lh "/tmp/mysql-tarball/$TARBALL"
+
+      - name: Unpack MySQL
+        run: |
+          mkdir -p "$SANDBOX_BINARY"
+          TARBALL="mysql-${MYSQL_VERSION}-linux-glibc2.17-x86_64.tar.xz"
+          dbdeployer unpack "/tmp/mysql-tarball/$TARBALL" \
+            --sandbox-binary="$SANDBOX_BINARY"
+
+      - name: Deploy sandbox
+        run: |
+          dbdeployer deploy single "$MYSQL_VERSION" \
+            --sandbox-binary="$SANDBOX_BINARY"
+
+      - name: Load Sakila schema
+        run: |
+          EXTRA_ARGS=""
+          [[ "$MYSQL_VERSION" == 9.* ]] && EXTRA_ARGS="--commands"
+          ~/sandboxes/msb_*/use $EXTRA_ARGS < sakila/sakila-mv-schema.sql
+
+      - name: Load Sakila data
+        run: |
+          EXTRA_ARGS=""
+          [[ "$MYSQL_VERSION" == 9.* ]] && EXTRA_ARGS="--commands"
+          ~/sandboxes/msb_*/use $EXTRA_ARGS < sakila/sakila-mv-data.sql
+
+      - name: Verify Sakila data
+        run: |
+          SBDIR=$(ls -d ~/sandboxes/msb_*)
+          # Verify core tables have data
+          for table in actor film customer rental payment staff store; do
+            COUNT=$($SBDIR/use -BN -e "SELECT COUNT(*) FROM $table;" sakila)
+            echo "$table: $COUNT rows"
+            [ "$COUNT" -gt 0 ] || { echo "FAIL: $table is empty"; exit 1; }
+          done
+          # Verify views work
+          $SBDIR/use -BN -e "SELECT COUNT(*) FROM film_list;" sakila
+          $SBDIR/use -BN -e "SELECT COUNT(*) FROM customer_list;" sakila
+
+      - name: Cleanup
+        if: always()
+        run: |
+          dbdeployer delete all --skip-confirm 2>/dev/null || true
+          pkill -9 -u "$USER" mysqld 2>/dev/null || true
