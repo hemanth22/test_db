@@ -80,16 +80,36 @@ jobs:
           dbdeployer deploy single "$MYSQL_VERSION" \
             --sandbox-binary="$SANDBOX_BINARY"
 
+      - name: Detect MySQL features
+        id: features
+        run: |
+          # --commands flag only exists in MySQL 9.5+ (SOURCE default changed to FALSE)
+          MAJOR=$(echo "$MYSQL_VERSION" | cut -d. -f1)
+          MINOR=$(echo "$MYSQL_VERSION" | cut -d. -f2)
+          NEEDS_COMMANDS="false"
+          if [ "$MAJOR" -gt 9 ] || { [ "$MAJOR" -eq 9 ] && [ "$MINOR" -ge 5 ]; }; then
+            NEEDS_COMMANDS="true"
+          fi
+          # Check if MD5() is available (removed in MySQL 9.6+)
+          HAS_MD5="true"
+          if [ "$MAJOR" -gt 9 ] || { [ "$MAJOR" -eq 9 ] && [ "$MINOR" -ge 6 ]; }; then
+            HAS_MD5="false"
+          fi
+          echo "needs_commands=$NEEDS_COMMANDS" >> "$GITHUB_OUTPUT"
+          echo "has_md5=$HAS_MD5" >> "$GITHUB_OUTPUT"
+          echo "MySQL $MYSQL_VERSION: needs_commands=$NEEDS_COMMANDS, has_md5=$HAS_MD5"
+
       - name: Load employees database
         run: |
           EXTRA_ARGS=""
-          [[ "$MYSQL_VERSION" == 9.* ]] && EXTRA_ARGS="--commands"
+          [ "${{ steps.features.outputs.needs_commands }}" == "true" ] && EXTRA_ARGS="--commands"
           ~/sandboxes/msb_*/use $EXTRA_ARGS < employees.sql
 
       - name: Test MD5 integrity
+        if: steps.features.outputs.has_md5 == 'true'
         run: |
           EXTRA_ARGS=""
-          [[ "$MYSQL_VERSION" == 9.* ]] && EXTRA_ARGS="--commands"
+          [ "${{ steps.features.outputs.needs_commands }}" == "true" ] && EXTRA_ARGS="--commands"
           ~/sandboxes/msb_*/use $EXTRA_ARGS -t < test_employees_md5.sql > /tmp/test_md5.txt
           cat /tmp/test_md5.txt
           md5_ok=$(grep -iw ok /tmp/test_md5.txt | wc -l | tr -d ' \t')
@@ -102,7 +122,7 @@ jobs:
       - name: Test SHA integrity
         run: |
           EXTRA_ARGS=""
-          [[ "$MYSQL_VERSION" == 9.* ]] && EXTRA_ARGS="--commands"
+          [ "${{ steps.features.outputs.needs_commands }}" == "true" ] && EXTRA_ARGS="--commands"
           ~/sandboxes/msb_*/use $EXTRA_ARGS -t < test_employees_sha.sql > /tmp/test_sha.txt
           cat /tmp/test_sha.txt
           sha_ok=$(grep -iw ok /tmp/test_sha.txt | wc -l | tr -d ' \t')
@@ -115,7 +135,7 @@ jobs:
       - name: Load objects (stored procedures/functions)
         run: |
           EXTRA_ARGS=""
-          [[ "$MYSQL_VERSION" == 9.* ]] && EXTRA_ARGS="--commands"
+          [ "${{ steps.features.outputs.needs_commands }}" == "true" ] && EXTRA_ARGS="--commands"
           ~/sandboxes/msb_*/use $EXTRA_ARGS < objects.sql
 
       - name: Test stored procedures
@@ -204,10 +224,26 @@ jobs:
           dbdeployer deploy single "$MYSQL_VERSION" \
             --sandbox-binary="$SANDBOX_BINARY"
 
+      - name: Detect MySQL features
+        id: features
+        run: |
+          MAJOR=$(echo "$MYSQL_VERSION" | cut -d. -f1)
+          MINOR=$(echo "$MYSQL_VERSION" | cut -d. -f2)
+          NEEDS_COMMANDS="false"
+          if [ "$MAJOR" -gt 9 ] || { [ "$MAJOR" -eq 9 ] && [ "$MINOR" -ge 5 ]; }; then
+            NEEDS_COMMANDS="true"
+          fi
+          HAS_MD5="true"
+          if [ "$MAJOR" -gt 9 ] || { [ "$MAJOR" -eq 9 ] && [ "$MINOR" -ge 6 ]; }; then
+            HAS_MD5="false"
+          fi
+          echo "needs_commands=$NEEDS_COMMANDS" >> "$GITHUB_OUTPUT"
+          echo "has_md5=$HAS_MD5" >> "$GITHUB_OUTPUT"
+
       - name: Load partitioned employees database
         run: |
           EXTRA_ARGS=""
-          [[ "$MYSQL_VERSION" == 9.* ]] && EXTRA_ARGS="--commands"
+          [ "${{ steps.features.outputs.needs_commands }}" == "true" ] && EXTRA_ARGS="--commands"
           ~/sandboxes/msb_*/use $EXTRA_ARGS < employees_partitioned.sql
 
       - name: Verify partitioning
@@ -225,9 +261,10 @@ jobs:
           [ "$PART_COUNT" -ge 18 ] || { echo "FAIL: expected >= 18 partitions on salaries"; exit 1; }
 
       - name: Test MD5 integrity
+        if: steps.features.outputs.has_md5 == 'true'
         run: |
           EXTRA_ARGS=""
-          [[ "$MYSQL_VERSION" == 9.* ]] && EXTRA_ARGS="--commands"
+          [ "${{ steps.features.outputs.needs_commands }}" == "true" ] && EXTRA_ARGS="--commands"
           ~/sandboxes/msb_*/use $EXTRA_ARGS -t < test_employees_md5.sql > /tmp/test_md5.txt
           cat /tmp/test_md5.txt
           md5_ok=$(grep -iw ok /tmp/test_md5.txt | wc -l | tr -d ' \t')
@@ -313,16 +350,28 @@ jobs:
           dbdeployer deploy single "$MYSQL_VERSION" \
             --sandbox-binary="$SANDBOX_BINARY"
 
+      - name: Detect MySQL features
+        id: features
+        run: |
+          MAJOR=$(echo "$MYSQL_VERSION" | cut -d. -f1)
+          MINOR=$(echo "$MYSQL_VERSION" | cut -d. -f2)
+          NEEDS_COMMANDS="false"
+          if [ "$MAJOR" -gt 9 ] || { [ "$MAJOR" -eq 9 ] && [ "$MINOR" -ge 5 ]; }; then
+            NEEDS_COMMANDS="true"
+          fi
+          echo "needs_commands=$NEEDS_COMMANDS" >> "$GITHUB_OUTPUT"
+          echo "MySQL $MYSQL_VERSION: needs_commands=$NEEDS_COMMANDS"
+
       - name: Load Sakila schema
         run: |
           EXTRA_ARGS=""
-          [[ "$MYSQL_VERSION" == 9.* ]] && EXTRA_ARGS="--commands"
+          [ "${{ steps.features.outputs.needs_commands }}" == "true" ] && EXTRA_ARGS="--commands"
           ~/sandboxes/msb_*/use $EXTRA_ARGS < sakila/sakila-mv-schema.sql
 
       - name: Load Sakila data
         run: |
           EXTRA_ARGS=""
-          [[ "$MYSQL_VERSION" == 9.* ]] && EXTRA_ARGS="--commands"
+          [ "${{ steps.features.outputs.needs_commands }}" == "true" ] && EXTRA_ARGS="--commands"
           ~/sandboxes/msb_*/use $EXTRA_ARGS < sakila/sakila-mv-data.sql
 
       - name: Verify Sakila data
