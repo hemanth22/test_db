@@ -18,12 +18,12 @@ CREATE TABLE found_values (LIKE expected_values);
 
 -- Expected SHA-256 checksums (computed from the canonical data set)
 INSERT INTO `expected_values` VALUES
-('employees',   300024, 'PLACEHOLDER'),
-('departments',      9, 'PLACEHOLDER'),
-('dept_manager',    24, 'PLACEHOLDER'),
-('dept_emp',    331603, 'PLACEHOLDER'),
-('titles',      443308, 'PLACEHOLDER'),
-('salaries',   2844047, 'PLACEHOLDER');
+('employees',   300024, '21f5d003842f24853e251d3d5116798bafe257ec3d1bb448b5365b68deaabbf4'),
+('departments',      9, '377c5d727383a32633e2973f8e3411beffe29e2f4cc297c586fa6b24aa7df9ba'),
+('dept_manager',    24, '3a4e69723deec413a7d8a4f5ce55013830303fa617b6380ed2b0fd2d48b1c768'),
+('dept_emp',    331603, '34548ee9989dd4d5e065168b43249c8d3eb48bfbbfb3f2fc1cf01be6658f6a75'),
+('titles',      443308, 'a9e940ef9ba1029a8f0356fdbe495430bedc59eec5ceb4f71e0cc35ddcbf9980'),
+('salaries',   2844047, '4e99e691a9ea98fefc0b4fec8ca4e758baeefba2967bd8d6474810a9a5f6e729');
 SELECT table_name, recs AS expected_records, crc_sha2 AS expected_crc FROM expected_values;
 
 DROP TABLE IF EXISTS tchecksum;

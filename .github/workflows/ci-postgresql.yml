@@ -94,6 +94,18 @@ jobs:
           fi
           echo "SHA OK ($sha_ok matches)"
 
+      - name: Test SHA2 integrity
+        run: |
+          SBDIR=$(ls -d ~/sandboxes/pg_sandbox_*)
+          $SBDIR/use < postgresql/test_employees_sha2.sql > /tmp/test_sha2.txt 2>&1
+          cat /tmp/test_sha2.txt
+          sha2_ok=$(grep -iw ok /tmp/test_sha2.txt | wc -l | tr -d ' \t')
+          if [ "$sha2_ok" != "8" ]; then
+            echo "SHA2 FAIL - expected 8 OK - found $sha2_ok"
+            exit 1
+          fi
+          echo "SHA2 OK ($sha2_ok matches)"
+
       - name: Load objects (stored procedures/functions)
         run: |
           SBDIR=$(ls -d ~/sandboxes/pg_sandbox_*)
