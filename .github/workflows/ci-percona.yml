@@ -33,7 +33,7 @@ jobs:
       - name: Install dbdeployer
         run: |
           curl -s https://raw.githubusercontent.com/ProxySQL/dbdeployer/master/scripts/dbdeployer-install.sh | bash
-          echo "$HOME/bin" >> "$GITHUB_PATH"
+          sudo mv dbdeployer /usr/local/bin/dbdeployer
 
       - name: Cache Percona tarball
         uses: actions/cache@v4
