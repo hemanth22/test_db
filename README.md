@@ -8,6 +8,7 @@ See usage in the [MySQL docs](https://dev.mysql.com/doc/employee/en/index.html)
 [![CI MySQL](https://github.com/datacharmer/test_db/actions/workflows/ci-mysql.yml/badge.svg)](https://github.com/datacharmer/test_db/actions/workflows/ci-mysql.yml)
 [![CI Percona](https://github.com/datacharmer/test_db/actions/workflows/ci-percona.yml/badge.svg)](https://github.com/datacharmer/test_db/actions/workflows/ci-percona.yml)
 [![CI MariaDB](https://github.com/datacharmer/test_db/actions/workflows/ci-mariadb.yml/badge.svg)](https://github.com/datacharmer/test_db/actions/workflows/ci-mariadb.yml)
+[![CI PostgreSQL](https://github.com/datacharmer/test_db/actions/workflows/ci-postgresql.yml/badge.svg)](https://github.com/datacharmer/test_db/actions/workflows/ci-postgresql.yml)
 
 
 ## Where it comes from
@@ -102,6 +103,35 @@ For example:
     | titles       | OK            | ok        |
     | salaries     | OK            | ok        |
     +--------------+---------------+-----------+
+
+
+## PostgreSQL Installation
+
+The database is also available for PostgreSQL. The schema and data are identical.
+
+1. Download the repository
+2. Install PostgreSQL (12+)
+3. Run the loading script:
+
+        cd postgresql
+        bash load_employees_db.sh
+
+   To use a custom psql command (e.g., from a dbdeployer sandbox):
+
+        PSQL=/path/to/psql bash load_employees_db.sh
+
+### Testing the PostgreSQL installation
+
+        psql -d employees < postgresql/test_employees_md5.sql
+        # OR
+        psql -d employees < postgresql/test_employees_sha.sql
+
+### Optional: load stored procedures and functions
+
+        psql -d employees < postgresql/objects.sql
+
+Available functions: `emp_name()`, `emp_dept_name()`, `emp_dept_id()`, `current_manager()`.
+Available procedures: `CALL show_departments()`, `CALL employees_help()`.
 
 
 ## DISCLAIMER
