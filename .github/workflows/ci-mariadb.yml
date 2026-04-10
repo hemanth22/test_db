@@ -18,6 +18,7 @@ jobs:
         mariadb-version:
           - '10.11.9'
           - '11.4.5'
+          - '12.1.2'
     env:
       SANDBOX_BINARY: ${{ github.workspace }}/opt/mysql
       MARIADB_VERSION: ${{ matrix.mariadb-version }}
@@ -33,7 +34,7 @@ jobs:
       - name: Install dbdeployer
         run: |
           curl -s https://raw.githubusercontent.com/ProxySQL/dbdeployer/master/scripts/dbdeployer-install.sh | bash
-          echo "$HOME/bin" >> "$GITHUB_PATH"
+          sudo mv dbdeployer /usr/local/bin/dbdeployer
 
       - name: Cache MariaDB tarball
         uses: actions/cache@v4
