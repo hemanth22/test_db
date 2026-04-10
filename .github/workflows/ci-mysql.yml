@@ -16,6 +16,8 @@ jobs:
       fail-fast: false
       matrix:
         mysql-version:
+          - '5.6.51'
+          - '5.7.44'
           - '8.0.42'
           - '8.4.8'
           - '9.0.1'
@@ -49,17 +51,25 @@ jobs:
         run: |
           SHORT_VER="${MYSQL_VERSION%.*}"
           mkdir -p /tmp/mysql-tarball
-          CACHED=$(ls /tmp/mysql-tarball/mysql-${MYSQL_VERSION}-linux-*.tar.xz 2>/dev/null | head -1)
+          CACHED=$(ls /tmp/mysql-tarball/mysql-${MYSQL_VERSION}-linux-*.tar.* 2>/dev/null | head -1)
           if [ -n "$CACHED" ]; then
             echo "Using cached tarball: $CACHED"
             ls -lh "$CACHED"
             exit 0
           fi
-          # Try glibc2.17 first, then glibc2.28 (needed for MySQL 9.6+)
-          for GLIBC in glibc2.17 glibc2.28; do
-            TARBALL="mysql-${MYSQL_VERSION}-linux-${GLIBC}-x86_64.tar.xz"
+          # MySQL 5.x uses .tar.gz / glibc2.12; 8.x+ uses .tar.xz / glibc2.17; 9.6+ uses glibc2.28
+          MAJOR=$(echo "$MYSQL_VERSION" | cut -d. -f1)
+          if [ "$MAJOR" -lt 8 ]; then
+            GLIBCS="glibc2.12"
+            EXT="tar.gz"
+          else
+            GLIBCS="glibc2.17 glibc2.28"
+            EXT="tar.xz"
+          fi
+          for GLIBC in $GLIBCS; do
+            TARBALL="mysql-${MYSQL_VERSION}-linux-${GLIBC}-x86_64.${EXT}"
             URL="https://dev.mysql.com/get/Downloads/MySQL-${SHORT_VER}/${TARBALL}"
-            echo "Trying ${GLIBC}..."
+            echo "Trying ${GLIBC} (${EXT})..."
             if curl -L -f -o "/tmp/mysql-tarball/$TARBALL" "$URL"; then
               ls -lh "/tmp/mysql-tarball/$TARBALL"
               exit 0
@@ -71,7 +81,7 @@ jobs:
       - name: Unpack MySQL
         run: |
           mkdir -p "$SANDBOX_BINARY"
-          TARBALL=$(ls /tmp/mysql-tarball/mysql-${MYSQL_VERSION}-linux-*.tar.xz | head -1)
+          TARBALL=$(ls /tmp/mysql-tarball/mysql-${MYSQL_VERSION}-linux-*.tar.* | head -1)
           dbdeployer unpack "$TARBALL" \
             --sandbox-binary="$SANDBOX_BINARY"
 
@@ -178,6 +188,8 @@ jobs:
       fail-fast: false
       matrix:
         mysql-version:
+          - '5.6.51'
+          - '5.7.44'
           - '8.0.42'
           - '8.4.8'
           - '9.0.1'
@@ -211,14 +223,22 @@ jobs:
         run: |
           SHORT_VER="${MYSQL_VERSION%.*}"
           mkdir -p /tmp/mysql-tarball
-          CACHED=$(ls /tmp/mysql-tarball/mysql-${MYSQL_VERSION}-linux-*.tar.xz 2>/dev/null | head -1)
+          CACHED=$(ls /tmp/mysql-tarball/mysql-${MYSQL_VERSION}-linux-*.tar.* 2>/dev/null | head -1)
           if [ -n "$CACHED" ]; then
             echo "Using cached tarball: $CACHED"
             ls -lh "$CACHED"
             exit 0
           fi
-          for GLIBC in glibc2.17 glibc2.28; do
-            TARBALL="mysql-${MYSQL_VERSION}-linux-${GLIBC}-x86_64.tar.xz"
+          MAJOR=$(echo "$MYSQL_VERSION" | cut -d. -f1)
+          if [ "$MAJOR" -lt 8 ]; then
+            GLIBCS="glibc2.12"
+            EXT="tar.gz"
+          else
+            GLIBCS="glibc2.17 glibc2.28"
+            EXT="tar.xz"
+          fi
+          for GLIBC in $GLIBCS; do
+            TARBALL="mysql-${MYSQL_VERSION}-linux-${GLIBC}-x86_64.${EXT}"
             URL="https://dev.mysql.com/get/Downloads/MySQL-${SHORT_VER}/${TARBALL}"
             echo "Trying ${GLIBC}..."
             if curl -L -f -o "/tmp/mysql-tarball/$TARBALL" "$URL"; then
@@ -232,7 +252,7 @@ jobs:
       - name: Unpack MySQL
         run: |
           mkdir -p "$SANDBOX_BINARY"
-          TARBALL=$(ls /tmp/mysql-tarball/mysql-${MYSQL_VERSION}-linux-*.tar.xz | head -1)
+          TARBALL=$(ls /tmp/mysql-tarball/mysql-${MYSQL_VERSION}-linux-*.tar.* | head -1)
           dbdeployer unpack "$TARBALL" \
             --sandbox-binary="$SANDBOX_BINARY"
 
@@ -317,6 +337,8 @@ jobs:
       fail-fast: false
       matrix:
         mysql-version:
+          - '5.6.51'
+          - '5.7.44'
           - '8.0.42'
           - '8.4.8'
           - '9.0.1'
@@ -350,14 +372,22 @@ jobs:
         run: |
           SHORT_VER="${MYSQL_VERSION%.*}"
           mkdir -p /tmp/mysql-tarball
-          CACHED=$(ls /tmp/mysql-tarball/mysql-${MYSQL_VERSION}-linux-*.tar.xz 2>/dev/null | head -1)
+          CACHED=$(ls /tmp/mysql-tarball/mysql-${MYSQL_VERSION}-linux-*.tar.* 2>/dev/null | head -1)
           if [ -n "$CACHED" ]; then
             echo "Using cached tarball: $CACHED"
             ls -lh "$CACHED"
             exit 0
           fi
-          for GLIBC in glibc2.17 glibc2.28; do
-            TARBALL="mysql-${MYSQL_VERSION}-linux-${GLIBC}-x86_64.tar.xz"
+          MAJOR=$(echo "$MYSQL_VERSION" | cut -d. -f1)
+          if [ "$MAJOR" -lt 8 ]; then
+            GLIBCS="glibc2.12"
+            EXT="tar.gz"
+          else
+            GLIBCS="glibc2.17 glibc2.28"
+            EXT="tar.xz"
+          fi
+          for GLIBC in $GLIBCS; do
+            TARBALL="mysql-${MYSQL_VERSION}-linux-${GLIBC}-x86_64.${EXT}"
             URL="https://dev.mysql.com/get/Downloads/MySQL-${SHORT_VER}/${TARBALL}"
             echo "Trying ${GLIBC}..."
             if curl -L -f -o "/tmp/mysql-tarball/$TARBALL" "$URL"; then
@@ -371,7 +401,7 @@ jobs:
       - name: Unpack MySQL
         run: |
           mkdir -p "$SANDBOX_BINARY"
-          TARBALL=$(ls /tmp/mysql-tarball/mysql-${MYSQL_VERSION}-linux-*.tar.xz | head -1)
+          TARBALL=$(ls /tmp/mysql-tarball/mysql-${MYSQL_VERSION}-linux-*.tar.* | head -1)
           dbdeployer unpack "$TARBALL" \
             --sandbox-binary="$SANDBOX_BINARY"
 

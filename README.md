@@ -10,17 +10,16 @@ See usage in the [MySQL docs](https://dev.mysql.com/doc/employee/en/index.html)
 [![CI MariaDB](https://github.com/datacharmer/test_db/actions/workflows/ci-mariadb.yml/badge.svg)](https://github.com/datacharmer/test_db/actions/workflows/ci-mariadb.yml)
 
 
-## Supported Versions
+## Tested Versions
 
-This database is regularly tested against the following server versions:
+The database requires MySQL 5.0+ or compatible server. The following versions are tested in CI
+using [ProxySQL/dbdeployer](https://github.com/ProxySQL/dbdeployer) on a weekly schedule:
 
 | Vendor | Versions |
 |--------|----------|
-| MySQL | 8.0, 8.4, 9.0, 9.2, 9.5, 9.6 |
+| MySQL | 5.6, 5.7, 8.0, 8.4, 9.0, 9.2, 9.5, 9.6 |
 | Percona Server | 8.0, 8.4 |
 | MariaDB | 10.11, 11.4, 12.1 |
-
-All versions are tested weekly via CI using [ProxySQL/dbdeployer](https://github.com/ProxySQL/dbdeployer).
 
 ### MySQL 9.x Notes
 
