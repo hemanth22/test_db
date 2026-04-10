@@ -38,6 +38,32 @@ Use `test_employees_sha2.sql` instead, which uses `SHA2(..., 256)` and is compat
 The SHA-256 checksums are identical across all supported MySQL, Percona, MariaDB, and PostgreSQL versions.
 
 
+## Tested Versions
+
+The database requires MySQL 5.0+ or compatible server. The following versions are tested in CI
+using [ProxySQL/dbdeployer](https://github.com/ProxySQL/dbdeployer) on a weekly schedule:
+
+| Vendor | Versions |
+|--------|----------|
+| MySQL | 5.6, 5.7, 8.0, 8.4, 9.0, 9.2, 9.5, 9.6 |
+| Percona Server | 8.0, 8.4 |
+| MariaDB | 10.11, 11.4, 12.1 |
+
+### MySQL 9.x Notes
+
+Starting with MySQL 9.5, the `SOURCE` command requires the `--commands` flag on the client:
+
+    mysql --commands < employees.sql
+
+Starting with MySQL 9.6, the `MD5()` and `SHA()` functions have been removed from the server.
+The integrity test files `test_employees_md5.sql` and `test_employees_sha.sql` will not work on 9.6+.
+Use `test_employees_sha2.sql` instead, which uses `SHA2(..., 256)` and is compatible with all versions:
+
+    mysql -t < test_employees_sha2.sql
+
+The SHA-256 checksums are identical across all supported MySQL, Percona, and MariaDB versions.
+
+
 ## Where it comes from
 
 The original data was created by Fusheng Wang and Carlo Zaniolo at 
