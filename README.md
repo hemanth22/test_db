@@ -13,7 +13,7 @@ See usage in the [MySQL docs](https://dev.mysql.com/doc/employee/en/index.html)
 
 ## Tested Versions
 
-The database requires MySQL 5.0+ or compatible server. The following versions are tested in CI
+The database requires MySQL 5.0+ or PostgreSQL 12+. The following versions are tested in CI
 using [ProxySQL/dbdeployer](https://github.com/ProxySQL/dbdeployer) on a weekly schedule:
 
 | Vendor | Versions |
